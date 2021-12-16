@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <title>Raycasting Demo</title>
+    <!--<link rel="icon" type="image/gif" href="images/favicon.ico">-->
+    <link rel="stylesheet" href="stylesheets/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    
+    <!--Specifying width/height in CSS stretches everything.-->
+    <canvas id="canvas" width="960" height="720"></canvas>
+ 
+    <div id="controls">
+      <p>WASD: Move</p>
+      <p>Mouse: Look</p>
+      <P>F: Show 2D View</P>
+      <p>E: Change mouse sensitivity</p>
+    </div>
+
+    <script src="js/entity/entity.js"></script>
+    <script src ="js/entity/camera.js"></script>
+    <script src="js/entity/player.js"></script>
+
+    <script src="js/input/game_input.js"></script>
+
+    <script src="js/level/level.js"></script>
+    <script src="js/level/tile.js"></script>
+
+    <script src="js/screens/screen.js"></script>
+    <script src="js/screens/game_screen.js"></script>
+
+    <script src="js/util/math.js"></script>
+    <script src="js/util/vector.js"></script>
+    <script src="js/util/box.js"></script>
+    <script src="js/util/ray.js"></script>
+
+    <!--Main script should be called last to avoid reference errors-->
+    <script src="js/raycaster.js"></script>
+  </body>
+</html>

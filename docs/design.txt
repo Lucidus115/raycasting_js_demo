@@ -1,0 +1,611 @@
+PROBLEM STATEMENT:
+  SomeGenericGamingCompany has a brilliant idea for a new innovative 3D first 
+  person shooter. Unfortunately the hardware they have access to isn't powerful
+  enough to run such advanced software. Write a program that takes in a user's
+  input, initalizes game logic and calculates entity velocity, direction, 
+  raytraces, all other required logic, and renders a pseduo-3D world to the screen 
+  with your own Raycasting algorithim. Keep processing everything in a game loop
+  until user quits.
+
+Nouns: user's input, game logic, velocity, direction, raytraces, raycasting, 
+  game loop
+
+Verbs: input, initalizes, calculates, renders
+
+INPUTS:
+  input
+
+PROCESSING:
+  listen for input with mouse and keyboard events
+  initalize variables and objects
+  calcuate entity data
+  raytrace every angle in player's view for every pixel of the screen's width
+  calculate wallHeight using distance
+  render wallHeight
+  render wallColor
+
+OUTPUTS:
+  wallHeight
+  wallColor
+
+
+SOLUTION ALGORITHIM:
+
+Class GameInput
+  Initalize #cam
+  Initalize #player
+
+  Initalize #lastMouseMove
+  Initalize #sensitivity
+
+  Constructor(cam, player)
+    Set this.#cam to cam
+    Set this.#player to player
+
+    Set this.#lastMouseMove to 0
+    Set this.#sensitivity to 0.02
+  END
+
+  KeyDown(event)
+    CASE OF event.code
+      "KeyW": this.#player.isMovingUp = true
+      break
+      "KeyS": this.#player.isMovingDown = true
+      break
+      "KeyA": this.#player.isMovingLeft = true
+      break
+      "KeyD": this.#player.isMovingRight = true
+      break
+      "KeyF": this.#player.show2D = true;
+    ENDCASE
+  END
+
+  KeyUp(event)
+    CASE OF event.code
+      "KeyW": this.#player.isMovingUp = false
+      break
+      "KeyS": this.#player.isMovingDown = false
+      break
+      "KeyA": this.#player.isMovingLeft = false
+      break
+      "KeyD": this.#player.isMovingRight = false
+      break
+      "KeyF": this.#player.show2D = false;
+    ENDCASE
+  END
+
+  MouseMove(event)
+    Initalize angle to 0
+
+    IF event.movement.X >= 1 THEN
+      Set angle to this.#sensitivity
+    ELSEIF event.movement.X <= -1 THEN
+      Set angle to -(this.#sensitivity)
+    ELSE
+      Set angle to this.#lastMouseMove
+    ENDIF
+
+    Rotate this.#cam.rotation with angle
+    this.#cam.rotation.normalize()
+    Set this.#cam.direction to this.#cam.rotation
+
+    this.#lastMouseMove = angle
+  END
+ENDCLASS
+
+Class Vector2
+  Initalize x
+  Initalize y
+
+  Constructor(x, y)
+    Set this.x to x
+    Set this.y to y
+  END
+
+  Distance(otherVec)
+    Initalize x2 to Math.pow
+  END
+
+  Length 
+    Initalize x2 to Math.pow(otherVec.x - this.x, 2)
+    Initalize y2 to Math.pow(otherVec.y - this.y, 2)
+
+    return Math.sqrt(x2 + y2)
+  END
+
+  Normalize
+    Initalize length to this.length
+
+    IF length === 0
+      return this
+    ENDIF
+
+    this.x /= length
+    this.y /= length
+
+    return this
+  END
+
+  Rotate(angle)
+    Initalize rotX to (this.x * Math.cos(angle)) - (this.y * Math.sin(angle))
+    Initalize rotY to (this.x * Math.sin(angle)) + (this.y * Math.cos(angle))
+    
+    Set this.x to rotX
+    Set this.y to rotY
+  END
+
+  Clone
+    return new Vector2(this.x, this.y)
+  END
+ENDCLASS
+
+Class Ray
+  Initalize #level
+  Initalize #hitPoint
+  Initalize #entity
+
+  Constructor(level, hitPoint)
+    Set this.#level to level
+    Set this.#hitPoint to hitPoint
+  END
+
+  GetHitPoint
+    return this.#hitPoint
+  END
+
+  GetHitTile
+    Initalize x to Math.floor(this.hitPoint.x)
+    Initalize y to Math.floor(this.hitPoint.y)
+
+    return this.#level.getTile(x, y)
+  END
+
+  GetHitTileFace
+    IF this.hitTile === null THEN
+      return
+    ENDIF
+
+    Initalize pointX to this.hitPoint.x
+    Initalize pointY to this.hitPoint.y
+    Initalize tileX to this.hitTile.location.x
+    Initalize tileY to this.hitTile.location.y
+
+    IF pointX === tileX THEN
+      return 2
+    ENDIF
+
+    IF pointX === tileX + 0.9 THEN
+      return 3
+    ENDIF
+
+    IF pointY === tileY THEN
+      return 0
+    ENDIF
+
+    IF pointY === tileY + 0.9 THEN
+      return 1
+    ENDIF
+  END
+ENDCLASS
+
+Class Camera extends Entity
+  Initalize rotation
+
+  Initalize #width
+  Initalize #projectedRays
+
+  Constructor(x, y, level, width)
+    Super(x, y, level)
+
+    Set this.#width to width
+
+    Set this.rotation to new Vector2(0, -(1))
+  END
+
+  Project
+    Set this.#projectedRays to []
+
+    Initalize rotX to this.rotation.x
+    Initalize rotY to this.rotation.y
+    Initalize scale to this.#width * 0.9375
+
+    rotate direction -(65 / 2) degrees
+
+    Initalize screenVec to this.location.clone().add(this.direction.x, 
+      this.direction.y)
+
+    FOR pixel = 0; pixel < this.#width; pixel++
+      screenVec.add(-rotY / scale, rotX / scale)
+      this.lookAt(screenVec)
+
+      Initalize result to this.raytrace()
+
+      IF result === null THEN
+        continue
+      ENDIF
+      this.#projectedRays.push(result)
+    ENDFOR
+    this.direction.set(rotX, rotY)
+  END
+
+  GetProjectedRays
+    return this.#projectedRays
+  END
+ENDCLASS
+
+Class Player extends Entity
+  Initalize isMovingUp to False
+  Initalize isMovingDown to False
+  Initalize isMovingLeft to False
+  Initalize isMovingRight to False
+
+  Initalize show2D to False
+
+  Constructor(x, y, level)
+    Super(x, y, level);
+  END
+
+  Update(delta)
+    Set this.velocity to (0, 0)
+
+    IF this.isMovingUp THEN
+      this.velocity.add(dir.x, dir.y)
+    ENDIF
+    IF this.isMovingDown THEN
+      this.velocity.add(-dir.x, -dir.y)
+    ENDIF
+    IF this.isMovingLeft THEN
+      this.velocity.add(dir.y, -dir.x)
+    ENDIF
+    IF this.isMovingRight THEN
+      this.velocity.add(-dir.y, dir.x)
+    ENDIF
+    Super.update(delta)
+  END
+ENDCLASS
+
+Class Entity
+  Initalize speed
+  Initalize velocity
+  Initalize viewDistance
+
+  Initalize #direction
+  Initalize #hitbox
+  Initalize #level
+
+  Constructor(x, y, level)
+    Initalize location to new Vector2(x, y)
+    Set this.#hitbox to new Box(location, 8, 8)
+
+    Set this.velocity to new Vector2(0, 0)
+    Set this.direction to new Vector2(0, 0)
+
+    Set this.level to level
+    Set this.speed to 2
+
+    Set this.viewDistance to 50
+  END
+
+  Update(delta)
+    this.#checkCollision()
+    this.velocity.normalize()
+
+    Set this.location to this.location + ((this.velocity * this.speed) * delta)
+  END
+
+  #CheckCollision
+    FOREACH point of hitbox
+      Initalize tileX to Math.floor(point.x)
+      Initalize tileY to Math.floor(point.y)
+
+      Initalize tile to this.level.getTile(tileX, tileY)
+
+      IF tile is null THEN
+        return
+      ENDIF
+
+      IF tile.HasCollision THEN
+        Initalize diffX to Math.floor(this.location.x) - tileX
+        Initalize diffY to Math.floor(this.location.y) - tileY
+
+        Set velocity to (diffX, diffY)
+      ENDIF
+    ENDFOREACH
+  END
+  
+  Raytrace
+    Initalize ray to new Vector2(0, 0)
+    Initalize tile
+
+    FOR pixel = 0; pixel < (this.viewDistance * PPM); pixel++
+      Initalize locX to this.location.x
+      Initalize locY to this.location.y
+
+      Initalize pointX to locX + ((pixel / PPM) * this.direction.x)
+      Initalize pointY to locY + ((pixel / PPM) * this.direction.y)
+
+      Set ray to (pointX, pointY)
+
+      Initalize tileX to Math.floor(ray.x)
+      Initalize tileY to Math.floor(ray.y)
+
+      Set tile to this.level.getTile(tileX, tileY)
+
+      IF (tile === null || tile.type === 0) THEN
+        continue 
+      ENDIF
+      return new Ray(this.level, ray);
+    ENDFOR
+    return null
+  END
+
+  lookAt(otherVec)
+   Set this.#direction to otherVec.clone().subtract(this.location.x, 
+     this.location.y).normalize();
+  END
+
+  GetLocation()
+    return this.#hitbox.location
+  END
+
+  SetLevel(newLevel)
+    IF this.#level !== undefined THEN
+      this.#level.entities.pop(this)
+    ENDIF
+    this.#level = newLevel
+    this.#level.entities.push(this)
+  END
+
+ENDCLASS
+
+Class Box
+  Initalize location
+
+  Initalize #width
+  Initalize #height
+
+  Constructor (location, width, height)
+    Set this.location to location
+    Set this.width to width
+    Set this.height to height
+  END
+
+  GetCornerPoints
+    Initalize widthDiff to (this.width / 2) / PPM
+    Initalize heightDiff to (this.height / 2) / PPM
+
+    Initalize bottomRight to this.location.clone().add(widthDiff, heightDiff);
+    Initalize bottomLeft to this.location.clone().add(-widthDiff, heightDiff);
+    Initalize topLeft to this.location.clone().add(-widthDiff, -heightDiff);
+    Initalize topRight to this.location.clone().add(widthDiff, -heightDiff);
+
+    return [bottomRight, bottomLeft, topLeft, topRight];
+  END
+
+  GetWidth
+    return this.#width
+  END
+
+  GetHeight
+    return this.#height
+  END
+ENDCLASS
+
+Class Tile
+  Initalize location
+  Initalize type
+
+  Constructor (x, y, type)
+    Set this.location to new Vector2(x, y)
+    Set this.type to type
+  END
+
+  HasCollision
+    CASE OF this.type
+      0: return false
+    ENDCASE
+    return true
+  END
+
+  GetColor
+    CASE OF this.type
+      0: return null
+      1: {"r": 255, "g": 255, "b": 255}
+      2: {"r": 255, "g": 0, "b": 0}
+      default: {"r": 0, "g": 0, "b": 0}
+    ENDCASE
+  END
+ENDCLASS
+
+Class Level
+  Initalize #map to []
+  Initalize entities to []
+
+  Constructor
+    Set this.#map = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 2, 0, 2, 1],
+        [1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+        [1, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+      ];
+
+    FOR every x in this.#mapSizeX
+      FOR every y in this.#mapSizeY
+        IF (this.#map[y][x] instanceof Tile) THEN
+          continue;
+        ENDIF
+        
+        Initalize tile to new Tile(x, y, this.#map[y][x]); 
+        Set this.#map[y][x] to tile;
+      ENDFOR
+    ENDFOR
+  END
+
+  GetMapSizeX
+    return this.#map[0].length
+  END
+
+  GetMapSizeY
+    return this.#map.length
+  END
+
+  GetTile(x, y)
+    IF (this.#isOutofBounds(x, y)) THEN
+      return null;
+    ENDIF
+    return this.#map[y][x];
+  END
+
+  #isOutofBounds(x, y)
+    return (y < 0 || y >= this.mapSizeY) || (x < 0 || x >= this.mapSizeX);
+  END
+ENDCLASS
+
+Class GameScreen
+  Initalize canvas
+
+  Initalize #level
+  Initalize #cam
+  Initalize #player
+
+  Constructor
+    Set canvas to document.getElementById("canvas")
+    Set mouse cursor to 'none'
+    this.#InitGame();
+  END
+
+  #InitGame
+    Set this.#level to new Level();
+    Set this.#cam to new Camera(21.5, 21.5, this.#level, canvas.width)
+    Set this.#player to new Player(21.5, 21.5, this.#level)
+
+    Set input to new GameInput(this.#cam, this.#player)
+
+    Add window.addEventListeners for "keydown", "keyup", and "mousemove" with input
+  END
+
+  Update (delta)
+    Set this.#cam.location to this.#player.location
+    Set this.#player.direction to this.#cam.rotation
+
+    FOREACH entity in this.#level
+      entity.update(delta)
+    ENDFOREACH
+
+    this.#cam.project();
+  END
+
+  Render
+    Initalize ctx to canvas.getContext("2d")
+    Initalize midHeight to canvas.height / 2
+
+    Clear screen with ctx.clearRect(0, 0, canvis.width, canvas.height)
+
+    FOR every pixel in this.#cam.projectedRays
+      Initalize result to this.#cam.projectedRays[pixel]
+      Initalize scale to 3
+      Initalize wallHeight to (canvas.height / 
+        (this.#cam.location.distance(result.hitPoint) * PPM)) * scale
+      Initalize tileColor to result.hitTile.getColor()
+
+      IF result.hitTileFace === 2 OR result.hitTileFace === 3 THEN
+
+      ENDIF
+
+      Start drawing walls with ctx.beginPath()
+
+      ctx.moveTo(pixel, (midHeight - wallHeight))
+      ctx.lineTo(pixel, (midHeight + wallHeight))
+      ctx.stroke()
+
+      Start drawing ceiling with ctx.beginPath()
+      Set stroke color to "Blue"
+      ctx.moveTo(pixel, midHeight - wallHeight)
+      ctx.lineTo(pixel, 0);
+      ctx.stroke;
+
+      Start drawing floor with ctx.beginPath()
+      Set stroke color to "Green"
+      ctx.moveTo(pixel, midHeight + wallHeight)
+      ctx.lineTo(pixel, canvas.height);
+      ctx.stroke;
+    ENDFOR
+
+  END
+ENDCLASS
+
+Class Engine
+  Initalize screen
+
+  Initalize #prevTime to performance.now()
+
+  Tick
+    Initalize currentTime to performance.now()
+    
+    Initalize delta to (currentTime - this.#prevTime) / 1000;
+
+    IF this.screen is not undefined THEN
+      this.screen.Update(delta);
+      this.screen.Render();
+    ENDIF
+
+    this.#prevTime = currentTime;
+    requestAnimationFrame(Tick())
+  END
+ENDCLASS
+
+Main
+  Initalize PPM to 16
+  Initalize engine to new Engine()
+
+  engine.screen = new GameScreen()
+  engine.tick()
+END
+
+VARIABLES: player.isMovingUp, player.isMovingDown, player.isMovingLeft, 
+  player.isMovingRight, MouseMove
+
+TEST CASE 1:
+
+  INPUT VALUES: player.isMovingUp = true, player.isMovingLeft = true, player.direction = (0, -1)
+
+  EXPECTED RESULT: player.velocity = (-0.71, -0.71)
+
+  ACTUAL RESULT: player.velocity = (-0.71, -0.71)
+
+TEST CASE 2:
+
+  INPUT VALUES: player.isMovingUp = true, player.isMovingDown = true, 
+    player.direction = (1, 0)
+
+  EXPECTED RESULT: player.velocity = (0, 0)
+
+  ACTUAL RESULT: player.velocity = (0, 0)
+
+TEST CASE 3:
+
+  INPUT VALUES: player.isMovingDown = true, player.direction = (-0.71, -0.71)
+
+  EXPECTED RESULT: player.velocity = (-0.71, 0.71)
+
+  ACTUAL RESULT: player.velocity = (-0.71, 0.71)

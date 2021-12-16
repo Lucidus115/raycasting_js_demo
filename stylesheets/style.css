@@ -1,0 +1,15 @@
+body {
+  background-color: black;
+}
+
+#canvas {
+  border: 1px solid white;
+  display: block;
+  margin: auto;
+}
+
+#controls {
+  color: white;
+  display: block;
+  text-align: center;
+}
