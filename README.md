@@ -7,6 +7,6 @@ This is my own implementation of a Raycasting Engine built entirely in JavaScrip
 
 ## Author
 
-Evan Ripczinski
+Autumn Ripczinski
 
-Copyright 2021 Evan L. Ripczinski, all rights reserved.
+Copyright 2021 Autumn L. Ripczinski, all rights reserved.
